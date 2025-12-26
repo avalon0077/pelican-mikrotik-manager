@@ -1,0 +1,11 @@
+{
+    "id": "MikrotikManager",
+    "name": "Mikrotik Manager",
+    "author": "Avalon",
+    "version": "1.0.1",
+    "description": "Automatically opens ports on Mikrotik for Pelican servers",
+    "namespace": "Avalon\\MikrotikManager",
+    "class": "MikrotikManagerServiceProvider",
+    "provider": "Avalon\\MikrotikManager\\MikrotikManagerServiceProvider",
+    "category": "plugin"
+}
