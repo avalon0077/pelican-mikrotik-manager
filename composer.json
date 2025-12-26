@@ -1,0 +1,27 @@
+{
+    "name": "avalon/mikrotik-manager",
+    "description": "Automatically opens ports on Mikrotik for Pelican servers",
+    "type": "pelican-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Avalon",
+            "email": "admin@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Avalon\\MikrotikManager\\": "src/"
+        }
+    },
+    "extra": {
+        "pelican": {
+            "providers": [
+                "Avalon\\MikrotikManager\\MikrotikManagerServiceProvider"
+            ]
+        }
+    }
+}
