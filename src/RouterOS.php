@@ -74,24 +74,50 @@ class RouterOS
 
     private function read()
     {
-        $response = [];
+        $records = [];
+        $sentence = [];
+        $status = [];
         while (true) {
             $line = $this->readWord();
-            if (empty($line)) break; // End of sentence
-            
-            // Parse line !re, !done, !trap
-            // Simple parsing for dictionary
+            if ($line === '') {
+                if (!empty($sentence)) {
+                    $isReply = isset($sentence['!re']);
+                    unset($sentence['!re']);
+
+                    if ($isReply) {
+                        $records[] = $sentence;
+                    } else {
+                        $status = $sentence;
+                    }
+                    $sentence = [];
+
+                    if (isset($status['!done']) || isset($status['!trap'])) {
+                        break;
+                    }
+                }
+                continue;
+            }
+
+            if (str_starts_with($line, '!')) {
+                $sentence[$line] = true;
+                continue;
+            }
+
             if (strpos($line, '=') !== false) {
-                 $parts = explode('=', $line, 3);
-                 if (isset($parts[2])) {
-                     $response[$parts[1]] = $parts[2];
-                 }
+                $parts = explode('=', $line, 3);
+                if (isset($parts[2])) {
+                    $sentence[$parts[1]] = $parts[2];
+                }
             } else {
-                // Should store status like !done or !trap
-                $response[$line] = true;
+                $sentence[$line] = true;
             }
         }
-        return $response;
+
+        if (!empty($records)) {
+            return $records;
+        }
+
+        return $status;
     }
 
     private function writeWord($word)
