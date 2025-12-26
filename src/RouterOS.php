@@ -19,11 +19,11 @@ class RouterOS
         $this->comm('/login');
         $response = $this->read();
         
-        if (isset($response['!trap'])) {
+        if (isset($response['trap'])) {
             return false;
         }
 
-        if (isset($response['!done']) && isset($response['ret'])) {
+        if (isset($response['done']) && is_array($response['done']) && isset($response['done']['ret'])) {
             // Challenge handling (old RouterOS versions)
             // Note: Modern RouterOS often uses different auth, but let's try standard first
             // If simple login fails, we might need complex CHAP logic here. 
@@ -36,7 +36,7 @@ class RouterOS
             // Let's try simpler flow if this library was basic. 
             // If the previous code worked for you, keep it. 
             // But usually, it needs this:
-            $chap = pack('H*', $response['ret']);
+            $chap = pack('H*', $response['done']['ret']);
             $pass = pack('H*', md5(chr(0) . $password . $chap));
             $this->comm('/login', ['name' => $login, 'response' => '00' . bin2hex($pass)]);
         } else {
@@ -45,7 +45,7 @@ class RouterOS
         }
 
         $response = $this->read();
-        if (isset($response['!done'])) {
+        if (isset($response['done'])) {
             return true;
         }
         
@@ -74,23 +74,42 @@ class RouterOS
 
     private function read()
     {
-        $response = [];
+        $response = ['data' => []];
+        $current = [];
+        $type = null;
+
         while (true) {
-            $line = $this->readWord();
-            if (empty($line)) break; // End of sentence
-            
-            // Parse line !re, !done, !trap
-            // Simple parsing for dictionary
-            if (strpos($line, '=') !== false) {
-                 $parts = explode('=', $line, 3);
-                 if (isset($parts[2])) {
-                     $response[$parts[1]] = $parts[2];
-                 }
-            } else {
-                // Should store status like !done or !trap
-                $response[$line] = true;
+            $word = $this->readWord();
+            if ($word === '') {
+                if ($type !== null) {
+                    if ($type === '!re') {
+                        $response['data'][] = $current;
+                    } elseif ($type === '!done') {
+                        $response['done'] = $current ?: true;
+                        break;
+                    } elseif ($type === '!trap') {
+                        $response['trap'] = $current ?: true;
+                        break;
+                    }
+                }
+                $current = [];
+                $type = null;
+                continue;
+            }
+
+            if ($word[0] === '!') {
+                $type = $word;
+                continue;
+            }
+
+            if (strpos($word, '=') === 0) {
+                $parts = explode('=', $word, 3);
+                if (isset($parts[2])) {
+                    $current[$parts[1]] = $parts[2];
+                }
             }
         }
+
         return $response;
     }
 

@@ -84,9 +84,24 @@ class MikrotikManagerServiceProvider extends ServiceProvider implements HasPlugi
                  return;
             }
 
+            $comment = "Pelican: " . $server->uuid;
+
+            if ($action === 'remove') {
+                $rules = $api->comm('/ip/firewall/nat/print', ['?comment' => $comment, '.proplist' => '.id']);
+                if (isset($rules['data']) && is_array($rules['data'])) {
+                    foreach ($rules['data'] as $rule) {
+                        if (isset($rule['.id'])) {
+                            $api->comm('/ip/firewall/nat/remove', ['.id' => $rule['.id']]);
+                        }
+                    }
+                }
+                Log::info("MikrotikPlugin: Removed ports");
+                $api->disconnect();
+                return;
+            }
+
             // Завантажуємо allocations, якщо вони ще не завантажені
             $server->load('allocations');
-            $comment = "Pelican: " . $server->uuid;
 
             foreach ($server->allocations as $allocation) {
                 if ($action === 'add') {
@@ -98,16 +113,7 @@ class MikrotikManagerServiceProvider extends ServiceProvider implements HasPlugi
                             'in-interface' => $interface, 'comment' => $comment
                         ]);
                     }
-                    Log::info("MikrotikPlugin: Opened port $allocation->port");
-                } elseif ($action === 'remove') {
-                    $rules = $api->comm('/ip/firewall/nat/print', ['?comment' => $comment, '.proplist' => '.id']);
-                    // Перевірка, чи rules не пустий і є масивом
-                    if (is_array($rules)) {
-                        foreach ($rules as $rule) {
-                            if (isset($rule['.id'])) $api->comm('/ip/firewall/nat/remove', ['.id' => $rule['.id']]);
-                        }
-                    }
-                    Log::info("MikrotikPlugin: Removed ports");
+                    Log::info("MikrotikPlugin: Opened port {$allocation->port}");
                 }
             }
             $api->disconnect();
